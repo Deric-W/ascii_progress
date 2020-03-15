@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 
+"""Module for creating ascii spinners and progress bars"""
+
+__version__ = "0.1"
+__author__ = "Eric Wolf"
+__maintainer__ = "Eric Wolf"
+__email__ = "robo-eric@gmx.de"
+__contact__ = "https://github.com/Deric-W/ascii-progress"
+
 import sys
 from threading import Lock
 
