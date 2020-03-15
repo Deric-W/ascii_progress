@@ -2,14 +2,15 @@
 
 """Module for creating ascii spinners and progress bars"""
 
+import sys
+from threading import Lock
+import math
+
 __version__ = "0.1"
 __author__ = "Eric Wolf"
 __maintainer__ = "Eric Wolf"
 __email__ = "robo-eric@gmx.de"
 __contact__ = "https://github.com/Deric-W/ascii-progress"
-
-import sys
-from threading import Lock
 
 # Spinners
 SPINNER_LINES = ("|", "/", "-", "\\")
@@ -90,7 +91,7 @@ class Spinner:
 
 class Bar:
     """class for creating progress bars"""
-    def __init__(self, width, max=100, format="{bar} {percent}", message="", end="\n", borders=BAR_BORDERS_APT, bars=BAR_BARS_APT, file=sys.stdout):
+    def __init__(self, width, max=100, format="{bar} {progress} {percent}", message="", end="\n", borders=BAR_BORDERS_APT, bars=BAR_BARS_APT, file=sys.stdout):
         """init with width on display, progress at 100%, format of the bar, message + end, borders, bars (same length) and file"""
         if len(bars[0]) != len(bars[1]):    # prevent size changing bar
             raise ValueError("bars do not have same length")
@@ -104,7 +105,7 @@ class Bar:
         self.borders = borders
         self.bars = bars
         self.file = file
-        self.file.write(self.format.format(bar=self.bar(), percent=self.percent()))
+        self.file.write(self.format.format(bar=self.bar(), percent=self.percent(), progress=self._progress()))
         self.file.flush()
 
     def __enter__(self):    # can be used as context manger
@@ -129,10 +130,15 @@ class Bar:
     
     def _update(self):
         """update bar, not thread safe"""
-        format = self.format.format(bar=self.bar(), percent=self.percent())
+        format = self.format.format(bar=self.bar(), percent=self.percent(), progress=self._progress())
         self.file.write("\b" * len(format))
         self.file.write(format)
         self.file.flush()
+    
+    def _progress(self):
+        """generate progress"""
+        max_length = int(math.log10(self.max)) + 1 
+        return "{0: >{max_length}}/{1: >{max_length}}".format(self.progress, self.max, max_length=max_length)
 
     def bar(self):
         """generate bar"""
@@ -143,12 +149,7 @@ class Bar:
     def percent(self):
         """generate percent"""
         percent = int(self.progress / (self.max / 100))
-        if percent < 10:    #add 2 spaces
-            return "  {}%".format(percent)
-        elif percent < 100: # add one space
-            return " {}%".format(percent)
-        else:   # add no spaces
-            return "{}%".format(percent)
+        return "{0: >3}%".format(percent)   # make size of percent 3 characters
 
     def add_progress(self, progress=1):
         """add progress to bar"""
@@ -169,7 +170,7 @@ class Bar:
     def close(self, interrupted=False):
         """replace bar with message"""
         with self.lock:
-            format = self.format.format(bar=self.bar(), percent=self.percent())
+            format = self.format.format(bar=self.bar(), percent=self.percent(), progress=self._progress())
             self.file.write("\b" * len(format))
             if interrupted: # same procedure like Spinner
                 self.file.write("\b\bKeyboardInterrupt" + " " * (len(format) - len("KeyboardInterrupt")) + "  " + self.end)

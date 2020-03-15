@@ -8,7 +8,7 @@ with open("README.md", "r") as fd:
     long_description = fd.read()
 
 setuptools.setup(
-    name="ascii-progress",
+    name="ascii_progress",
     license="LICENSE",
     version=ascii_progress.__version__,
     author=ascii_progress.__author__,
@@ -17,7 +17,6 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=ascii_progress.__contact__,
-    packages=["ascii_progress"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
