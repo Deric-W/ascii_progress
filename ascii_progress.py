@@ -33,18 +33,19 @@ BAR_BARS_CUSTOM = (" ", "=")
 
 class Spinner:
     """class for creating a spinning animation"""
-    def __init__(self, frames=SPINNER_LINES, message="", file=sys.stdout):
+    def __init__(self, frames=SPINNER_LINES, message="", end="\n", file=sys.stdout):
         """init with iterable of frames to display, a message to replace the spinner with at .close() and file to write to"""
         self.lock = Lock() # for threading support
         self.frames = frames
         self.max_length = len(max(frames, key=len))  # to prevent only partial overwrite of old frames
         self.message = message  # message to replace spinner with at .close()
+        self.end = end  # end of message
         self.file = file
         self.frame = 0
         self.file.write(self.get_frame() + " " * (self.max_length - len(self.get_frame())))  # pad frame to fully overwrite old one
         self.file.flush()
 
-    def __enter__(self):
+    def __enter__(self):    # can be used as context manager
         return self
 
     def __exit__(self, type, value, traceback):
@@ -81,93 +82,99 @@ class Spinner:
         with self.lock:
             self.file.write("\b" * self.max_length) # set position to start of current frame
             if interrupted:   # add 2 \b and 2 spaces to handle additional ^C
-                self.file.write("\b\bKeyboardInterrupt" + " " * (self.max_length - len("KeyboardInterrupt")) + "  \n")  # pad error message to fully overwrite old frame and add newline
+                self.file.write("\b\bKeyboardInterrupt" + " " * (self.max_length - len("KeyboardInterrupt")) + "  " + self.end)  # pad error message to fully overwrite old frame and add end
             else:
-                self.file.write(self.message + " " * (self.max_length - len(self.message)) + "\n")  # pad message to fully overwrite old frame and add newline
+                self.file.write(self.message + " " * (self.max_length - len(self.message)) + self.end)  # pad message to fully overwrite old frame and add end
             self.file.flush()
 
 
 class Bar:
-    def __init__(self, width, max=100, borders=BAR_BORDERS_APT, bars=BAR_BARS_APT, file=sys.stdout):
-        self.lock = Lock()
-        self.max = max
-        self.borders = borders
-        if len(bars[0]) > len(bars[1]):                                     # make bars have the same length
-            self.bars = bars[0], bars[1] + " " * (len(bars[0]) - len(bars[1]))
-        elif len(bars[0]) < len(bars[1]):
-            self.bars = bars[0] + " " * (len(bars[1]) - len(bars[0])), bars[1]
-        else:
-            self.bars = bars
+    """class for creating progress bars"""
+    def __init__(self, width, max=100, format="{bar} {percent}", message="", end="\n", borders=BAR_BORDERS_APT, bars=BAR_BARS_APT, file=sys.stdout):
+        """init with width on display, progress at 100%, format of the bar, message + end, borders, bars (same length) and file"""
+        if len(bars[0]) != len(bars[1]):    # prevent size changing bar
+            raise ValueError("bars do not have same length")
+        self.lock = Lock()  # threading support
         self.width = width
+        self.max = max
+        self.progress = 0
+        self.format = format
+        self.message = message
+        self.end = end
+        self.borders = borders
+        self.bars = bars
         self.file = file
-        self.state = 0
-        self.closed = False
-        self.file.write(borders[0] + bars[0] * width + borders[1])
+        self.file.write(self.format.format(bar=self.bar(), percent=self.percent()))
         self.file.flush()
 
-    def __enter__(self):
+    def __enter__(self):    # can be used as context manger
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+    def __exit__(self, type, value, traceback):
+        if type is KeyboardInterrupt:   # handle ^C
+            self.close(interrupted=True)
+        else:
+            self.close()
+        return False    # we dont handle exceptions
 
-    def __iter__(self):
+    def __iter__(self): # can be used as iterator
         return self
 
     def __next__(self):
-        if self.state == self.max:                                       # reached max iterations
+        if self.progress == self.max:   # reached max iterations
             raise StopIteration
         else:
-            self.add_progress(amount=1)
-            return self.state
-
-    def __check_closed(self):
-        if self.closed:
-            raise RuntimeError("Bar closed")
-
-    def __update_bar(self):
-        accuracy = self.max / self.width
-        bar_count = int(self.state / accuracy)
-        full_bar = self.bars[1] * bar_count
-        empty_bar = self.bars[0] * (self.width - bar_count)
-        length = self.width * len(self.bars[0]) + len(self.borders[0]) + len(self.borders[1])
-        self.file.write("\b" * length)
-        self.file.write(self.borders[0] + full_bar + empty_bar + self.borders[1])
+            self.add_progress(1)
+            return self.progress
+    
+    def _update(self):
+        """update bar, not thread safe"""
+        format = self.format.format(bar=self.bar(), percent=self.percent())
+        self.file.write("\b" * len(format))
+        self.file.write(format)
         self.file.flush()
 
-    def get_percentage(self):
-        self.__check_closed()
-        return self.state / (self.max / 100)
+    def bar(self):
+        """generate bar"""
+        percent = int(self.progress / (self.max / 100))
+        bars = int(self.width / 100 * percent)
+        return self.borders[0] + self.bars[1] * bars + self.bars[0] * (self.width - bars) + self.borders[1]
 
-    def get_progress(self):
-        self.__check_closed()
-        return self.state        
+    def percent(self):
+        """generate percent"""
+        percent = int(self.progress / (self.max / 100))
+        if percent < 10:    #add 2 spaces
+            return "  {}%".format(percent)
+        elif percent < 100: # add one space
+            return " {}%".format(percent)
+        else:   # add no spaces
+            return "{}%".format(percent)
 
-    def add_progress(self, amount=1):
-        self.__check_closed()
+    def add_progress(self, progress=1):
+        """add progress to bar"""
         with self.lock:
-            self.state += amount
-            if self.state > self.max:                                  # prevent overflow
-                self.state = self.max
-            self.__update_bar()
+            self.progress += progress
+            if self.progress > self.max:    # prevent overflow
+                self.progress = self.max
+            self._update()
 
-    def set_progress(self, state=0):
-        self.__check_closed()
+    def set_progress(self, progress=0):
+        """set progress of bar"""
         with self.lock:
-           self.state = state
-           if self.state > self.max:
-               self.state = self.max
-           self.__update_bar()
+            self.progress = progress
+            if self.progress > self.max:    # prevent overflow
+                self.progress = self.max        
+            self._update()
 
-    def close(self, message="", end="\n"):                              # the same purpose as Spinner.close
-        self.__check_closed()
+    def close(self, interrupted=False):
+        """replace bar with message"""
         with self.lock:
-            self.closed = True
-            length = self.width * len(self.bars[0]) + len(self.borders[0]) + len(self.borders[1])
-            padding = length - len(message)
-            self.file.write("\b" * length)
-            self.file.write(message + " " * padding + end)
-            self.file.flush()
+            format = self.format.format(bar=self.bar(), percent=self.percent())
+            self.file.write("\b" * len(format))
+            if interrupted: # same procedure like Spinner
+                self.file.write("\b\bKeyboardInterrupt" + " " * (len(format) - len("KeyboardInterrupt")) + "  " + self.end)
+            else:
+                self.file.write(self.message + " " * (len(format) - len(self.message)) + self.end) # pad message to fully overwrite bar
 
 
 if __name__ == "__main__":  # run demo
@@ -179,31 +186,10 @@ if __name__ == "__main__":  # run demo
             for i in range(1, 10):
                 spinner.add_progress()
                 time.sleep(0.2)
-
-    sys.stdout.write("Working ")
-    test = Bar(10)
-    for i in range(0, 110):                         # no overflows
-        test.add_progress()
-        time.sleep(0.05)
-    test.close("Done")
-
-    sys.stdout.write("Working ")
-    test = Bar(10, borders=BAR_BORDERS_PIP, bars=BAR_BARS_PIP)
-    for i in range(0, 110):                         # no overflows
-        test.add_progress()
-        time.sleep(0.05)
-    test.close("Done")
-
-    sys.stdout.write("Working ")
-    test = Bar(10, borders=BAR_BORDERS_CUSTOM, bars=BAR_BARS_CUSTOM)
-    for i in range(0, 110):                         # no overflows
-        test.add_progress()
-        time.sleep(0.05)
-    test.close("Done")
-
-    sys.stdout.write("Working ")
-    test = Bar(10, borders=("-[", "]-"), bars=("--", "**"))
-    for i in range(0, 110):                         # no overflows
-        test.add_progress()
-        time.sleep(0.05)
-    test.close("Done")
+    
+    for variant in ((BAR_BORDERS_APT, BAR_BARS_APT), (BAR_BORDERS_PIP, BAR_BARS_PIP), (BAR_BORDERS_CUSTOM, BAR_BARS_CUSTOM), (("-[", "]-"), ("--", "**"))):
+        sys.stdout.write("Working ")
+        with Bar(10, message="Done", borders=variant[0], bars=variant[1]) as bar:
+            for i in range(1,110):  # prove resistance against overflows
+                bar.add_progress(1)
+                time.sleep(0.02)
