@@ -6,7 +6,7 @@ import sys
 from threading import Lock
 import math
 
-__version__ = "0.1"
+__version__ = "0.2"
 __author__ = "Eric Wolf"
 __maintainer__ = "Eric Wolf"
 __email__ = "robo-eric@gmx.de"
