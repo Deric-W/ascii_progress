@@ -8,8 +8,7 @@ The module contains the following:
    - creates an spinner at the current position of the stream and can be used as a context manager and iterator
    - contains the following (class)methods:
      - `with_padding`, which creates a spinner with padded frames to prevent cursor movement
-     - `add_progress`, which makes the spinner show the next frame (defaults to 1)
-     - `set_progress`, which makes the spinner show a specific frame (defaults to 0)
+     - `set_progress`, which makes the spinner show a specific frame
      - `replace`, which replaces the spinner with the message + end
    - contains the `current_frame` property to get/set the current frame as a str
  - `BarFormat`, a class which stores the format information of a progress bar

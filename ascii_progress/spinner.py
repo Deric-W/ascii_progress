@@ -57,7 +57,7 @@ class Spinner(ContextManager, Iterator[None]):
         return self
 
     def __next__(self) -> None:
-        self.add_progress(1)
+        self.set_progress(self.frame + 1)
         return None
 
     @classmethod
@@ -80,23 +80,19 @@ class Spinner(ContextManager, Iterator[None]):
 
     def update(self, frame: int) -> None:
         """update spinner"""
+        new_frame = self.frames[frame]
         old_size = len(self.current_frame)
         self.reset()  # set position to start of current frame
         self.frame = frame
-        new_frame = self.current_frame
         self.current_padding = max(old_size - len(new_frame), 0)
         self.file.write(new_frame + " " * self.current_padding)
         self.file.flush()   # ignore line buffering
 
     def reset(self) -> None:
-        """replace the spinner with a blank frame"""
+        """move the cursor to the start of the frame"""
         self.file.write("\b" * (len(self.current_frame) + self.current_padding))
 
-    def add_progress(self, progress: int = 1) -> None:
-        """add progress to spinner"""
-        self.set_progress(self.frame + progress)
-
-    def set_progress(self, progress: int = 0) -> None:
+    def set_progress(self, progress: int) -> None:
         """set progress of spinner"""
         self.update(progress % len(self.frames))    # prevent IndexError if progress >= len(frames)
 
