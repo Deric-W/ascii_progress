@@ -43,17 +43,17 @@ class Spinner(ContextManager, Iterator[None]):
                 and self.file is other.file
         return NotImplemented
 
-    def __enter__(self):
+    def __enter__(self) -> "Spinner":
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback) -> bool:     # type: ignore
         if type is KeyboardInterrupt:   # add 2 \b and 2 spaces to handle additional ^C
             self.replace("\b\bKeyboardInterrupt", end="  \n")
         else:
             self.replace("Finished")
         return False    # we dont handle exceptions
 
-    def __iter__(self):
+    def __iter__(self) -> "Spinner":
         return self
 
     def __next__(self) -> None:

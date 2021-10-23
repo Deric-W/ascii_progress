@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""Module contains ASCII progress indicators"""
+"""Module containing ASCII progress indicators"""
 
 # Copyright (c) 2020 Eric W.
 # SPDX-License-Identifier: MIT
