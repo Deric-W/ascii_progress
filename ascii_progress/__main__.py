@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import sys
 import time
-from . import Spinner, BarFormat
+from .spinner import Spinner
+from .bar import BarFormat
 
 # run demo
 for frames in (
