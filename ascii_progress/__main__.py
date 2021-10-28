@@ -17,8 +17,7 @@ for frames in (
 ):
     sys.stdout.write("Working ")
     with Spinner(frames) as spinner:
-        for i in range(1, 15):
-            spinner.add_progress()
+        for _ in map(spinner.set_progress, range(1, 15)):
             time.sleep(0.2)
 
 for bar_format in map(

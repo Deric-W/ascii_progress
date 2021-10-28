@@ -119,7 +119,7 @@ class ASCIIBar(Bar):
         """init with format of the bar, progress at 100%, format of the displayed bar and file"""
         self.bar_format = bar_format
         self.max = max
-        self.current_progress = 1
+        self.current_progress = 0
         self.file = file
         self.file.write(
             LAZY_FORMATTER.format(
@@ -163,6 +163,7 @@ class ASCIIBar(Bar):
         )
         self.file.write("\b" * bar_length)
         self.file.write(message + " " * (bar_length - len(message)) + end)  # pad message to fully overwrite bar
+        self.file.flush()
 
     def progress(self) -> int:
         """return the current progress of the bar"""
@@ -195,7 +196,7 @@ class ASCIIBar(Bar):
 
     def format_percent(self) -> str:
         """generate a string representation of the current progress in percent"""
-        return "{0: >4.0%}".format(self.ratio())
+        return "{0: >3d}%".format(math.floor(self.ratio() * 100))
 
 
 class ThresholdDecorator(Bar):
@@ -330,6 +331,7 @@ class BarFormat:
             return self.borders == other.borders \
                 and self.states == other.states \
                 and self.width == other.width \
+                and self.format == other.format \
                 and self.wrapper is other.wrapper   # type:ignore
         return NotImplemented
 

@@ -8,8 +8,7 @@ The module contains the following:
    - creates an spinner at the current position of the stream and can be used as a context manager and iterator
    - contains the following (class)methods:
      - `with_padding`, which creates a spinner with padded frames to prevent cursor movement
-     - `add_progress`, which makes the spinner show the next frame (defaults to 1)
-     - `set_progress`, which makes the spinner show a specific frame (defaults to 0)
+     - `set_progress`, which makes the spinner show a specific frame
      - `replace`, which replaces the spinner with the message + end
    - contains the `current_frame` property to get/set the current frame as a str
  - `BarFormat`, a class which stores the format information of a progress bar
@@ -22,9 +21,9 @@ The module contains the following:
     - creates as progress bar at the current position of the stream and can be used as a context manager and iterator
     - contains the following methods:
       - `progress`, which returns the current progress
+      - `set_progress`, which changes the status of the bar and returns if it was successful
       - `target`, which returns the progress at 100%
-      - `current_percent`, which returns the current percentage of the bar as string
-      - `update`, which redraws the bar
+      - `update`, which redraws the bar and is not automatically called by `set_progress`
       - `width`, which returns the number of bar segments
       - `replace`, which replaces the bar with a message + end
   - a little demo with multiple examples which is displayed if the module is executed with `python3 -m ascii_progress`
