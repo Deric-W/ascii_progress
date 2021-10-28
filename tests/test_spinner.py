@@ -29,6 +29,7 @@ class TestSpinner(unittest.TestCase):
                 [s for s in spinners if s == spinner],
                 [spinner]
             )
+        self.assertNotEqual(spinners[0], 42)
 
     def test_context(self) -> None:
         """test Spinner __enter__ and __exit__"""
