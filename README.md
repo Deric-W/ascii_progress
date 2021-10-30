@@ -1,4 +1,4 @@
-# ascii-progress
+# ascii_progress [![Tests](https://github.com/Deric-W/ascii_progress/actions/workflows/Tests.yaml/badge.svg)](https://github.com/Deric-W/ascii_progress/actions/workflows/Tests.yaml) [![codecov](https://codecov.io/gh/Deric-W/ascii_progress/branch/master/graph/badge.svg)](https://codecov.io/gh/Deric-W/ascii_progress) [![License: MIT](https://img.shields.io/github/license/Deric-W/ascii_progress)](https://opensource.org/licenses/MIT)
 Python module for creating ascii spinners and progress bars
 
 ## Content
