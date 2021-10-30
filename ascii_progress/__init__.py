@@ -9,7 +9,7 @@ __all__ = (
     "spinner",
     "bar"
 )
-__version__ = "0.3"
+__version__ = "1.0"
 __author__ = "Eric Wolf"
 __maintainer__ = "Eric Wolf"
 __email__ = "robo-eric@gmx.de"

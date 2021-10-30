@@ -10,6 +10,7 @@ The module contains the following:
      - `with_padding`, which creates a spinner with padded frames to prevent cursor movement
      - `set_progress`, which makes the spinner show a specific frame
      - `replace`, which replaces the spinner with the message + end
+     - `handle_exceptions`, which returns a context manager which replaces the spinner with a normal or error message depending if a exception was raised
    - contains the `current_frame` property to get/set the current frame as a str
  - `BarFormat`, a class which stores the format information of a progress bar
    - is initialised with a tuple containing the left and right bar borders, a tuple containing a empty and a filled bar part, the width of the progress bar and an optional format string specifying the bar layout
@@ -26,6 +27,7 @@ The module contains the following:
       - `update`, which redraws the bar and is not automatically called by `set_progress`
       - `width`, which returns the number of bar segments
       - `replace`, which replaces the bar with a message + end
+      - `handle_exceptions`, which returns a context manager which replaces the bar with a normal or error message depending if a exception was raised
   - a little demo with multiple examples which is displayed if the module is executed with `python3 -m ascii_progress`
 
 ## Install
