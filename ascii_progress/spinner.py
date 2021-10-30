@@ -48,7 +48,7 @@ class SpinnerContext(ContextManager[T]):
         elif type is KeyboardInterrupt:
             # add 2 \b and 2 spaces to handle additional ^C
             # add 2 additional spaces to make up for missing padding
-            self.spinner.replace("\b\b" + self.error, end="    \n")     
+            self.spinner.replace("\b\b" + self.error, end="    \n")
         else:
             self.spinner.replace(self.error, end="\n")
         return False    # we dont handle exceptions

@@ -317,16 +317,14 @@ class PercentDecorator(ThresholdDecorator):
     @classmethod
     def with_inferred_thresholds(cls, bar: Bar) -> "PercentDecorator":
         """create an instance with inferred thresholds"""
-        lower_threshold, upper_threshold = calculate_thresholds(bar, 100)
-        return cls(
-            bar,
-            lower_threshold,
-            upper_threshold,
-        )
+        return cls(bar, *calculate_thresholds(bar, 100))
 
     def update_thresholds(self) -> None:
         """update lower and upper thresholds"""
-        self.lower_threshold, self.upper_threshold = calculate_thresholds(self.bar, 100)
+        self.lower_threshold, self.upper_threshold = calculate_thresholds(
+            self.bar,
+            100
+        )
 
 
 class BarDecorator(ThresholdDecorator):
@@ -337,16 +335,14 @@ class BarDecorator(ThresholdDecorator):
     @classmethod
     def with_inferred_thresholds(cls, bar: Bar) -> "BarDecorator":
         """create an instance with inferred thresholds"""
-        lower_threshold, upper_threshold = calculate_thresholds(bar, bar.width())
-        return cls(
-            bar,
-            lower_threshold,
-            upper_threshold,
-        )
+        return cls(bar, *calculate_thresholds(bar, bar.width()))
 
     def update_thresholds(self) -> None:
         """update lower and upper thresholds"""
-        self.lower_threshold, self.upper_threshold = calculate_thresholds(self.bar, self.bar.width())
+        self.lower_threshold, self.upper_threshold = calculate_thresholds(
+            self.bar,
+            self.bar.width()
+        )
 
 
 class BarFormat:
