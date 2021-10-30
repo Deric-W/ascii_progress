@@ -9,11 +9,23 @@ import sys
 import math
 from abc import abstractmethod
 from string import Formatter
-from typing import Callable, Sequence, TextIO, Tuple, Iterator, ContextManager, Mapping, Any, Union
+from typing import (
+    Callable,
+    Sequence,
+    TextIO,
+    Tuple,
+    Iterator,
+    ContextManager,
+    Mapping,
+    Any,
+    Union,
+    TypeVar
+)
 
 __all__ = (
     "LazyFormatter",
     "LAZY_FORMATTER",
+    "BarContext",
     "Bar",
     "ThresholdDecorator",
     "PercentDecorator",
@@ -36,8 +48,48 @@ class LazyFormatter(Formatter):
 
 LAZY_FORMATTER = LazyFormatter()
 
+T = TypeVar("T", bound="Bar")
 
-class Bar(ContextManager["Bar"], Iterator[None]):
+
+class BarContext(ContextManager[T]):
+    """context manager which handles exceptions while using a bar"""
+
+    bar: T
+
+    message: str
+
+    error: str
+
+    __slots__ = ("bar", "message", "error")
+
+    def __init__(self, bar: T, message: str, error: str) -> None:
+        self.bar = bar
+        self.message = message
+        self.error = error
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, BarContext):
+            return self.bar == other.bar \
+                and self.message == other.message \
+                and self.error == other.error
+        return NotImplemented
+
+    def __enter__(self) -> T:
+        return self.bar
+
+    def __exit__(self, type, value, traceback) -> bool:     # type: ignore
+        if type is None:
+            self.bar.replace(self.message, end="\n")
+        elif type is KeyboardInterrupt:
+            # add 2 \b and 2 spaces to handle additional ^C
+            # add 2 additional spaces to make up for missing padding
+            self.bar.replace("\b\b" + self.error, end="    \n")
+        else:
+            self.bar.replace(self.error, end="\n")
+        return False    # we dont handle exceptions
+
+
+class Bar(Iterator[None]):
     """abstract base class for progress bars"""
 
     __slots__ = ()
@@ -48,16 +100,6 @@ class Bar(ContextManager["Bar"], Iterator[None]):
                 and self.target() == other.target() \
                 and self.width() == other.width()
         return NotImplemented
-
-    def __enter__(self) -> "Bar":
-        return self
-
-    def __exit__(self, type, value, traceback) -> bool:     # type: ignore
-        if type is KeyboardInterrupt:   # handle ^C
-            self.replace("\b\bKeyboardInterrupt", end="  \n")
-        else:
-            self.replace("Finished")
-        return False    # we dont handle exceptions
 
     def __iter__(self) -> "Bar":
         return self
@@ -96,6 +138,10 @@ class Bar(ContextManager["Bar"], Iterator[None]):
     def width(self) -> int:
         """return the size of the bar"""
         raise NotImplementedError
+
+    def handle_exceptions(self: T, message: str, error: str) -> BarContext[T]:
+        """return a context manager which replaces the bar with message or error if a exceptions is raised"""
+        return BarContext(self, message, error)
 
     def ratio(self) -> float:
         """return the ration progress / target"""
@@ -271,16 +317,14 @@ class PercentDecorator(ThresholdDecorator):
     @classmethod
     def with_inferred_thresholds(cls, bar: Bar) -> "PercentDecorator":
         """create an instance with inferred thresholds"""
-        lower_threshold, upper_threshold = calculate_thresholds(bar, 100)
-        return cls(
-            bar,
-            lower_threshold,
-            upper_threshold,
-        )
+        return cls(bar, *calculate_thresholds(bar, 100))
 
     def update_thresholds(self) -> None:
         """update lower and upper thresholds"""
-        self.lower_threshold, self.upper_threshold = calculate_thresholds(self.bar, 100)
+        self.lower_threshold, self.upper_threshold = calculate_thresholds(
+            self.bar,
+            100
+        )
 
 
 class BarDecorator(ThresholdDecorator):
@@ -291,16 +335,14 @@ class BarDecorator(ThresholdDecorator):
     @classmethod
     def with_inferred_thresholds(cls, bar: Bar) -> "BarDecorator":
         """create an instance with inferred thresholds"""
-        lower_threshold, upper_threshold = calculate_thresholds(bar, bar.width())
-        return cls(
-            bar,
-            lower_threshold,
-            upper_threshold,
-        )
+        return cls(bar, *calculate_thresholds(bar, bar.width()))
 
     def update_thresholds(self) -> None:
         """update lower and upper thresholds"""
-        self.lower_threshold, self.upper_threshold = calculate_thresholds(self.bar, self.bar.width())
+        self.lower_threshold, self.upper_threshold = calculate_thresholds(
+            self.bar,
+            self.bar.width()
+        )
 
 
 class BarFormat:

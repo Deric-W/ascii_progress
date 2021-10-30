@@ -16,7 +16,7 @@ for frames in (
     (">))'>", "    >))'>", "        >))'>", "        <'((<", "    <'((<", "<'((<")
 ):
     sys.stdout.write("Working ")
-    with Spinner(frames) as spinner:
+    with Spinner(frames).handle_exceptions("Done", "Exception") as spinner:
         for _ in map(spinner.set_progress, range(1, 15)):
             time.sleep(0.2)
 
@@ -29,6 +29,6 @@ for bar_format in map(
     )
 ):
     sys.stdout.write("Working ")
-    with bar_format.bar(75) as bar:
+    with bar_format.bar(75).handle_exceptions("Done", "Exception") as bar:
         for _ in bar:
             time.sleep(0.02)
