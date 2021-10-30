@@ -5,8 +5,10 @@
 import unittest
 import unittest.mock
 from io import StringIO
+from typing import ContextManager
 from ascii_progress.bar import (
     LAZY_FORMATTER,
+    BarContext,
     Bar,
     ASCIIBar,
     ThresholdDecorator,
@@ -39,6 +41,58 @@ class TestLazyFormatter(unittest.TestCase):
         self.assertEqual(
             LAZY_FORMATTER.format("a{}c{d}", lambda: "b", d=lambda: "d"),
             "abcd"
+        )
+
+
+class BarSpinnerContext(unittest.TestCase):
+    """tests for BarContext"""
+
+    def test_eq(self) -> None:
+        """test BarContext.__eq__"""
+        format = BarFormat(("-[", "]-"), ("  ", "=="), 5)
+        bar = ASCIIBar(format, file=StringIO())
+        contexts = [
+            BarContext(bar, "1", "2"),
+            BarContext(bar, "2", "2"),
+            BarContext(bar, "1", "1"),
+            BarContext(ASCIIBar(format, file=StringIO()), "1", "1")
+        ]
+        for context in contexts:
+            self.assertEqual(
+                [context],
+                [c for c in contexts if c == context]
+            )
+        self.assertNotEqual(contexts[0], 42)
+
+    def test_context(self) -> None:
+        """test SpinnerContext as context manager"""
+        output = StringIO()
+        bar = ASCIIBar(BarFormat(("[", "]"), (" ", "="), 3, format="{bar}"), file=output)
+        with BarContext(bar, "1", "2") as context:
+            self.assertIsInstance(context, Bar)
+            context.set_progress(34)
+            context.update()
+        with self.assertRaises(RuntimeError):
+            with BarContext(bar, "1", "2") as context:
+                context.set_progress(67)
+                context.update()
+                raise RuntimeError
+        with self.assertRaises(KeyboardInterrupt):
+            with BarContext(bar, "1", "2") as context:
+                context.set_progress(100)
+                context.update()
+                raise KeyboardInterrupt
+        self.assertEqual(
+            output.getvalue(),
+            "\b\b\b\b\b".join((
+                "[   ]",
+                "[=  ]",
+                "1    \n",
+                "[== ]",
+                "2    \n",
+                "[===]",
+                "\b\b2      \n"
+            ))
         )
 
 
@@ -76,18 +130,11 @@ class TestBar(unittest.TestCase):
                 break
         self.assertEqual(next(iterations), 11)
 
-    def test_enter(self) -> None:
-        """test Bar.__enter__ and __exit__"""
-        mock = unittest.mock.Mock(spec=Bar)
-        self.assertIs(Bar.__enter__(mock), mock)
-        self.assertFalse(Bar.__exit__(mock, None, None, None))
-        self.assertFalse(Bar.__exit__(mock, KeyboardInterrupt, KeyboardInterrupt(), None))
-        self.assertEqual(
-            mock.replace.call_args_list,
-            [
-                unittest.mock.call("Finished"),
-                unittest.mock.call("\b\bKeyboardInterrupt", end="  \n")
-            ]
+    def test_handle_exceptions(self) -> None:
+        """test Bar.handle_exceptions"""
+        self.assertIsInstance(
+            Bar.handle_exceptions(None, "", ""),
+            ContextManager
         )
 
 
